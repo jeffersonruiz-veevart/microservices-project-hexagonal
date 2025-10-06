@@ -23,7 +23,16 @@
 
 ## Description
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+This project implements an architecture based on **microservices** using **NestJS** and the **hexagonal architecture (Ports & Adapters)** approach.
+The main objective is to maintain highly decoupled, testable, and easy-to-maintain code by separating business rules from the framework and infrastructure.
+
+## 🧩 Hexagonal Architecture (Ports & Adapters)
+
+**Hexagonal architecture**, also known as *Ports & Adapters*, seeks to separate the **core business** (domain and use cases) from **external mechanisms** (databases, APIs, messaging, etc.).
+
+The core communicates with the outside world through **ports** (interfaces), while **adapters** implement those interfaces to interact with specific technologies.
+
+Translated with DeepL.com (free version)
 
 ## Project setup
 
@@ -96,3 +105,78 @@ Nest is an MIT-licensed open source project. It can grow thanks to the sponsors 
 ## License
 
 Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+
+### 🔷 Suggested folder structure
+
+```
+│   └── users
+│       ├── application            # Use cases / Interactors / DTOs
+│       │   └── use-cases
+│       ├── domain                 # Entidades, objetos de valor, servicios de dominio
+│       │   ├── entities
+│       │   ├── ports              # Interfaces (ports) used by the domain
+│       │   │   ├── inbound        # (Input ports)
+│       │   │   └── outbound       # (Output ports)
+│       ├── infrastructure         # Technical interaction (HTTP, DB, queues, etc.)
+│       │   ├── adapters
+│       │   ├── controllers
+│       ├── user.module.d.ts
+│       ├── user.module.js
+│       └── user.module.js.map
+```
+
+## 🪄 Dependency injection with tokens and symbols
+
+In NestJS, **tokens** identify which implementation should be injected.  
+When using **interfaces** (which do not exist at runtime), a **symbolic token** is used:
+
+```ts
+export const USER_PROMOTION_SERVICE = Symbol('USER_PROMOTION_SERVICE');
+```
+
+This creates a **unique and secure** identifier, avoiding collisions and keeping the contract decoupled.
+
+### 🧩 Context: dependency injection in NestJS
+
+In NestJS, when you use decorators such as:
+
+```ts
+@Injectable()
+export class SomeService {}
+```
+
+and then inject it with:
+
+```ts
+constructor(private readonly someService: SomeService) {}
+```
+Nest uses the class name (SomeService) as a token to resolve the dependency in its Dependency Injection Container.
+
+But when you define interfaces or abstract classes (as in hexagonal architecture), Nest cannot inject them directly, because interfaces do not exist in JavaScript at runtime.
+
+For example, this does not work:
+
+```ts
+export interface UserPromotionService {
+  promoteUser(userId: string): Promise<void>;
+}
+
+// ❌ No funciona
+constructor(private readonly promotionService: UserPromotionService) {}
+```
+### 💡 Solution: use a symbolic token
+
+To solve this problem, we define a manual token, using Symbol() or a string constant:
+
+```ts
+export const USER_PROMOTION_SERVICE = Symbol('USER_PROMOTION_SERVICE');
+```
+
+- Symbol(‘USER_PROMOTION_SERVICE’) creates a unique value (ensuring that no one else accidentally uses the same identifier).
+
+- You export it for use both in the provider (where the implementation is registered) and in the consumer (where it is injected).
+
+### Conclusion:
+
+The Symbol(‘USER_PROMOTION_SERVICE’) serves as a unique and secure token to identify a dependency (a specific implementation) that complies with a contract (interface or port).
+This allows the core of your application (use cases) to depend only on the port (interface), while the infrastructure (adapter) is registered and injected without coupling the code.
